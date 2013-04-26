@@ -1,3 +1,8 @@
+package com.thu.grabingblocks.background;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * @author xiexinkai
@@ -30,8 +35,12 @@ public class Shape{
 	/**
 	 * @return Shape's Point[];
 	 */
-	public Point[] getPoints(){
-		return p;
+	public final List<Point> getPoints(){
+		List<Point> list=new ArrayList<Point>(p.length);
+		for(int i=0;i<p.length;i++){
+			list.add(p[i]);
+		}
+		return list;
 	}
 	/**
 	 * @return Shape's width (y-coordinate)
