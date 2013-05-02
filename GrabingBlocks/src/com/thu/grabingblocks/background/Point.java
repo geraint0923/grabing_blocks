@@ -7,4 +7,19 @@ public class Point {
 	}
 	public int x;
 	public int y;
+	
+	@Override
+	public int hashCode(){
+		return x*1024+y;
+	}
+
+	@Override
+	public boolean equals(Object obj){
+		if(obj instanceof Point){
+			if(obj.hashCode()==this.hashCode()){
+				return true;
+			}
+		}
+		return false;
+	}
 }

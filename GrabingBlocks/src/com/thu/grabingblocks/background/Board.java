@@ -2,20 +2,21 @@ package com.thu.grabingblocks.background;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.HashSet;
+import java.util.Set;
 /**
  * each Game has one GameManager. Main Class in background
  * @author xxk
  *
  */
-public class GameManager {
+public class Board {
 	/**
 	 * construct
 	 * @param width the board's width
 	 * @param height the board's height
 	 * @param playerNum how many player in this game(now only support playerNum=4)
 	 */
-	public GameManager(int width,int height,int playerNum){
+	public Board(int width,int height,int playerNum){
 		this.playerNum=playerNum;
 		//init the board
 		this.width=width;
@@ -37,6 +38,9 @@ public class GameManager {
 			activeBlockList.get(1)[width-1][0]=true;
 			activeBlockList.get(2)[width-1][height-1]=true;
 			activeBlockList.get(3)[0][height-1]=true;
+		}else{//playNum==2
+			activeBlockList.get(0)[width*3/4][height*1/4]=true;
+			activeBlockList.get(0)[width*1/4][height*3/4]=true;			
 		}
 		//init ShapeManager
 		shapeManagerList=new ArrayList<ShapeManager>(playerNum);
@@ -82,20 +86,22 @@ public class GameManager {
 		}
 		Point[] p=shape.p;
 		boolean active[][]=activeBlockList.get(playerID);
-		boolean flag=false;//at least it should have one block place in an active block
-		for(int i=0;i<p.length;i++){
-			if(board[dx+p[i].x][dy+p[i].y]>=0 || adjacentOccupied(dx+p[i].x,dy+p[i].y,playerID)){
-				return false;
-			}
-			if(active[dx+p[i].x][dy+p[i].y]){
+		boolean flag=false;
+		for(int i=0;i<p.length;i++){//at least it should have one block place in an active block
+			if(board[dx+p[i].x][dy+p[i].y]>=0 || active[dx+p[i].x][dy+p[i].y]){
 				flag=true;
 			}
 		}
-		if(flag){
-			return true;
-		}else{
+		if(!flag){
 			return false;
 		}
+		for(int i=0;i<p.length;i++){//it cannot place near its other shapes , nor place on other players' block
+			if(adjacentOccupied(dx+p[i].x,dy+p[i].y,playerID)){
+				return false;
+			}
+
+		}
+		return true;
 	}
 	
 	/**
@@ -204,6 +210,67 @@ public class GameManager {
 		return shapeManagerList.get(playerID).shapes;
 	}
 	
+	/**
+	 * check whether this player have no shape to place, if true, this player lose the game.
+	 * @param playerID
+	 * @return true if this player cannot place any shape he has
+	 */
+	public boolean isLose(int playerID){
+		List<Shape> list=this.getShapes(playerID);
+		for(int i=0;i<list.size();i++){
+			if(getAvailableBlocksForShape(list.get(i),playerID).size()>0){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * check whether this player can place this shape into the board
+	 * the shape can rotate, reflect, at most 8 conditions
+	 * @param shape
+	 * @param playerID
+	 * @return
+	 */
+	public List<Point> getAvailableBlocksForShape(Shape shape,int playerID){
+		Set<Point> blocks=new HashSet<Point>();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.reflect();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.rotate();
+		calAvailableBlocksForShape(shape,playerID,blocks);
+		shape.reflect();//change the shape back to this original condition
+		return new ArrayList<Point>(blocks);
+	}
+	
+	//only used by void getAvailableBlocksForShape
+	private void calAvailableBlocksForShape(Shape shape,int playerID,Set<Point> list){
+		for(int i=0;i<width;i++){
+			for(int j=0;j<height;j++){
+				if(this.canPlace(shape, i, j, playerID)){
+					List<Point> p=shape.getPoints();
+					boolean[][] active=this.activeBlockList.get(playerID);
+					for(int k=0;k<p.size();k++){
+						int x=p.get(k).x + i;
+						int y=p.get(k).y + j;
+						if(active[x][y]){
+							list.add(new Point(x,y));
+						}
+					}
+				}
+			}
+		}
+	}
 	//Debug
 	public void printActiveBlocks(int playerID){
 		List<Point> list=getAvailableBlocks(playerID);
